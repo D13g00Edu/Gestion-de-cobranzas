@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Cobranzas</title>
+    <!-- Enlace al CDN de Tailwind CSS para un diseño rápido y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Un fondo gris claro para la aplicación */
+        }
+        /* Estilos para el indicador de carga */
+        .loading-indicator {
+            display: none; /* Oculto por defecto */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6; /* Color azul de Tailwind */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Indicador de carga -->
+    <div id="loading-indicator" class="loading-indicator">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Encabezado y Navegación Principal -->
+    <header class="bg-blue-600 text-white p-4 shadow-md">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-3xl font-bold mb-2 md:mb-0 rounded-md">Gestión de Cobranzas</h1>
+            <nav>
+                <ul class="flex space-x-4">
+                    <li><button id="nav-dashboard" class="py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">Dashboard</button></li>
+                    <li><button id="nav-add-debt" class="py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">Registrar Deuda</button></li>
+                    <li><button id="nav-view-debts" class="py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">Ver Deudas</button></li>
+                    <li><button id="nav-clients" class="py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">Clientes</button></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Contenido Principal de la Aplicación -->
+    <main class="container mx-auto p-4 flex-grow">
+
+        <!-- Sección del Dashboard -->
+        <section id="dashboard-section" class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Resumen del Dashboard</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-blue-100 p-4 rounded-md shadow-sm text-center">
+                    <p class="text-lg font-medium text-blue-800">Deudas Pendientes</p>
+                    <p id="dashboard-pending-count" class="text-3xl font-bold text-blue-900">...</p>
+                </div>
+                <div class="bg-yellow-100 p-4 rounded-md shadow-sm text-center">
+                    <p class="text-lg font-medium text-yellow-800">Monto Total Pendiente</p>
+                    <p id="dashboard-total-pending-amount" class="text-3xl font-bold text-yellow-900">...</p>
+                </div>
+                <div class="bg-red-100 p-4 rounded-md shadow-sm text-center">
+                    <p class="text-lg font-medium text-red-800">Deudas Atrasadas</p>
+                    <p id="dashboard-overdue-count" class="text-3xl font-bold text-red-900">...</p>
+                </div>
+            </div>
+            <p class="mt-4 text-gray-600">Aquí se mostrará un resumen visual de tus cobranzas.</p>
+        </section>
+
+        <!-- Sección para Registrar Nueva Deuda -->
+        <section id="add-debt-section" class="bg-white p-6 rounded-lg shadow-md mb-6 hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Registrar Nueva Deuda</h2>
+            <form id="debt-form" class="space-y-4">
+                <div>
+                    <label for="client-name" class="block text-sm font-medium text-gray-700">Nombre del Cliente</label>
+                    <input type="text" id="client-name" name="clientName" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div>
+                    <label for="debt-amount" class="block text-sm font-medium text-gray-700">Monto de la Deuda ($)</label>
+                    <input type="number" id="debt-amount" name="debtAmount" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div>
+                    <label for="due-date" class="block text-sm font-medium text-gray-700">Fecha de Vencimiento</label>
+                    <input type="date" id="due-date" name="dueDate" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700">Descripción (Opcional)</label>
+                    <textarea id="description" name="description" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300 font-semibold">Guardar Deuda</button>
+            </form>
+        </section>
+
+        <!-- Sección para Ver Deudas Existentes -->
+        <section id="view-debts-section" class="bg-white p-6 rounded-lg shadow-md mb-6 hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Listado de Deudas</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-md">Cliente</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimiento</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-md">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="debts-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Las filas de deudas se cargarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Sección de Gestión de Clientes -->
+        <section id="clients-section" class="bg-white p-6 rounded-lg shadow-md mb-6 hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Gestión de Clientes</h2>
+            <p class="text-gray-600">Aquí podrás ver y gestionar la información de tus clientes.</p>
+            <div class="overflow-x-auto mt-4">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-md">Nombre</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-md">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Las filas de clientes se cargarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Pie de Página -->
+    <footer class="bg-gray-800 text-white p-4 text-center mt-auto rounded-t-lg">
+        <p>&copy; 2025 Sistema de Gestión de Cobranzas. Todos los derechos reservados.</p>
+    </footer>
+
+    <script>
+        // URL base de tu API de FastAPI
+        const API_BASE_URL = 'http://127.0.0.1:8000'; // Asegúrate de que coincida con la URL de tu backend
+
+        // Función para mostrar/ocultar el indicador de carga
+        function showLoading() {
+            document.getElementById('loading-indicator').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-indicator').style.display = 'none';
+        }
+
+        // Obtener referencias a las secciones y botones de navegación
+        const dashboardSection = document.getElementById('dashboard-section');
+        const addDebtSection = document.getElementById('add-debt-section');
+        const viewDebtsSection = document.getElementById('view-debts-section');
+        const clientsSection = document.getElementById('clients-section');
+
+        const navDashboard = document.getElementById('nav-dashboard');
+        const navAddDebt = document.getElementById('nav-add-debt');
+        const navViewDebts = document.getElementById('nav-view-debts');
+        const navClients = document.getElementById('nav-clients');
+
+        const debtForm = document.getElementById('debt-form');
+        const debtsTableBody = document.getElementById('debts-table-body');
+        const clientsTableBody = document.getElementById('clients-table-body');
+
+        // Dashboard elements
+        const dashboardPendingCount = document.getElementById('dashboard-pending-count');
+        const dashboardTotalPendingAmount = document.getElementById('dashboard-total-pending-amount');
+        const dashboardOverdueCount = document.getElementById('dashboard-overdue-count');
+
+        // Función para ocultar todas las secciones
+        function hideAllSections() {
+            dashboardSection.classList.add('hidden');
+            addDebtSection.classList.add('hidden');
+            viewDebtsSection.classList.add('hidden');
+            clientsSection.classList.add('hidden');
+        }
+
+        // Función para mostrar una sección específica y cargar datos si es necesario
+        async function showSection(section) {
+            hideAllSections();
+            section.classList.remove('hidden');
+
+            if (section === dashboardSection) {
+                await loadDashboardData();
+            } else if (section === viewDebtsSection) {
+                await loadDebts();
+            } else if (section === clientsSection) {
+                await loadClients();
+            }
+        }
+
+        // --- Funciones de Carga de Datos ---
+
+        async function loadDashboardData() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/debts/`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const debts = await response.json();
+
+                let pendingCount = 0;
+                let totalPendingAmount = 0;
+                let overdueCount = 0;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Para comparar solo la fecha
+
+                debts.forEach(debt => {
+                    const dueDate = new Date(debt.due_date);
+                    dueDate.setHours(0, 0, 0, 0);
+
+                    if (debt.status === 'Pendiente') {
+                        pendingCount++;
+                        totalPendingAmount += debt.amount;
+                        if (dueDate < today) {
+                            overdueCount++;
+                        }
+                    } else if (debt.status === 'Atrasada') {
+                        overdueCount++;
+                        pendingCount++; // Considerar atrasadas como pendientes para el total
+                        totalPendingAmount += debt.amount;
+                    }
+                });
+
+                dashboardPendingCount.textContent = pendingCount;
+                dashboardTotalPendingAmount.textContent = `$${totalPendingAmount.toFixed(2)}`;
+                dashboardOverdueCount.textContent = overdueCount;
+
+            } catch (error) {
+                console.error('Error al cargar datos del dashboard:', error);
+                // Aquí podrías mostrar un mensaje de error en la UI
+            } finally {
+                hideLoading();
+            }
+        }
+
+
+        async function loadDebts() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/debts/`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const debts = await response.json();
+                renderDebtsTable(debts);
+            } catch (error) {
+                console.error('Error al cargar deudas:', error);
+                // Aquí podrías mostrar un mensaje de error en la UI
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function loadClients() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/clients/`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const clients = await response.json();
+                renderClientsTable(clients);
+            } catch (error) {
+                console.error('Error al cargar clientes:', error);
+                // Aquí podrías mostrar un mensaje de error en la UI
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // --- Funciones de Renderizado de Tablas ---
+
+        function renderDebtsTable(debts) {
+            debtsTableBody.innerHTML = ''; // Limpiar tabla antes de añadir nuevas filas
+            debts.forEach(debt => {
+                const row = debtsTableBody.insertRow();
+                row.classList.add('hover:bg-gray-50');
+
+                row.insertCell().textContent = debt.client_name;
+                row.insertCell().textContent = `$${parseFloat(debt.amount).toFixed(2)}`;
+                row.insertCell().textContent = debt.due_date; // FastAPI devuelve la fecha como string
+
+                const statusCell = row.insertCell();
+                const statusSpan = document.createElement('span');
+                statusSpan.classList.add('px-2', 'inline-flex', 'text-xs', 'leading-5', 'font-semibold', 'rounded-full');
+
+                if (debt.status === 'Pendiente') {
+                    statusSpan.classList.add('bg-yellow-100', 'text-yellow-800');
+                } else if (debt.status === 'Atrasada') {
+                    statusSpan.classList.add('bg-red-100', 'text-red-800');
+                } else if (debt.status === 'Pagada') {
+                    statusSpan.classList.add('bg-green-100', 'text-green-800');
+                }
+                statusSpan.textContent = debt.status;
+                statusCell.appendChild(statusSpan);
+
+                const actionsCell = row.insertCell();
+                actionsCell.classList.add('whitespace-nowrap', 'text-sm', 'font-medium');
+
+                const editButton = document.createElement('button');
+                editButton.classList.add('text-blue-600', 'hover:text-blue-900', 'mr-2', 'rounded-md', 'p-1');
+                editButton.textContent = 'Editar';
+                editButton.onclick = () => handleEditDebt(debt.id);
+                actionsCell.appendChild(editButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.classList.add('text-red-600', 'hover:text-red-900', 'rounded-md', 'p-1');
+                deleteButton.textContent = 'Eliminar';
+                deleteButton.onclick = () => handleDeleteDebt(debt.id);
+                actionsCell.appendChild(deleteButton);
+
+                // Botón para enviar recordatorio (opcional, si se quiere enviar manualmente)
+                const reminderButton = document.createElement('button');
+                reminderButton.classList.add('text-purple-600', 'hover:text-purple-900', 'ml-2', 'rounded-md', 'p-1');
+                reminderButton.textContent = 'Recordatorio';
+                reminderButton.onclick = () => handleSendReminder(debt.id);
+                actionsCell.appendChild(reminderButton);
+            });
+        }
+
+        function renderClientsTable(clients) {
+            clientsTableBody.innerHTML = ''; // Limpiar tabla
+            clients.forEach(client => {
+                const row = clientsTableBody.insertRow();
+                row.classList.add('hover:bg-gray-50');
+
+                row.insertCell().textContent = client.name;
+                row.insertCell().textContent = client.phone;
+                row.insertCell().textContent = client.email || 'N/A';
+
+                const actionsCell = row.insertCell();
+                actionsCell.classList.add('whitespace-nowrap', 'text-sm', 'font-medium');
+
+                const viewDebtsButton = document.createElement('button');
+                viewDebtsButton.classList.add('text-blue-600', 'hover:text-blue-900', 'mr-2', 'rounded-md', 'p-1');
+                viewDebtsButton.textContent = 'Ver Deudas';
+                viewDebtsButton.onclick = () => console.log('Ver deudas del cliente:', client.id); // Implementar filtro por cliente
+                actionsCell.appendChild(viewDebtsButton);
+
+                const editButton = document.createElement('button');
+                editButton.classList.add('text-red-600', 'hover:text-red-900', 'rounded-md', 'p-1');
+                editButton.textContent = 'Editar';
+                editButton.onclick = () => handleEditClient(client.id); // Implementar edición de cliente
+                actionsCell.appendChild(editButton);
+            });
+        }
+
+        // --- Manejadores de Eventos y Llamadas a la API ---
+
+        // Manejo del envío del formulario de deuda
+        debtForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // Evitar el envío por defecto del formulario
+
+            showLoading();
+
+            const newDebt = {
+                client_name: document.getElementById('client-name').value,
+                amount: parseFloat(document.getElementById('debt-amount').value),
+                due_date: document.getElementById('due-date').value,
+                description: document.getElementById('description').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/debts/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newDebt),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Error al registrar deuda: ${errorData.detail || response.statusText}`);
+                }
+
+                const createdDebt = await response.json();
+                console.log('Deuda registrada exitosamente:', createdDebt);
+                // NOTA: En una aplicación real, usa un modal o mensaje en la UI
+                alert('Deuda registrada exitosamente.');
+                debtForm.reset(); // Limpiar el formulario
+                await showSection(viewDebtsSection); // Recargar la lista de deudas
+            } catch (error) {
+                console.error('Error al registrar deuda:', error);
+                // NOTA: En una aplicación real, usa un modal o mensaje de error en la UI
+                alert(`Error: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        async function handleDeleteDebt(debtId) {
+            // NOTA: En una aplicación real, usa un modal de confirmación personalizado
+            if (!confirm('¿Estás seguro de que quieres eliminar esta deuda?')) {
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/debts/${debtId}`, {
+                    method: 'DELETE',
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Error al eliminar deuda: ${errorData.detail || response.statusText}`);
+                }
+
+                console.log(`Deuda ${debtId} eliminada exitosamente.`);
+                // NOTA: En una aplicación real, usa un modal o mensaje en la UI
+                alert('Deuda eliminada exitosamente.');
+                await loadDebts(); // Recargar la lista de deudas
+            } catch (error) {
+                console.error('Error al eliminar deuda:', error);
+                // NOTA: En una aplicación real, usa un modal o mensaje de error en la UI
+                alert(`Error: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function handleEditDebt(debtId) {
+            console.log('Función de edición de deuda para ID:', debtId);
+            // NOTA: Aquí deberías cargar los datos de la deuda en un formulario de edición (modal)
+            // y luego enviar una solicitud PUT a /debts/{debt_id}
+            alert('Funcionalidad de edición aún no implementada. Ver consola para el ID.');
+        }
+
+        async function handleSendReminder(debtId) {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/send-reminder/${debtId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Error al enviar recordatorio: ${errorData.detail || response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('Recordatorio enviado:', result.message);
+                // NOTA: En una aplicación real, usa un modal o mensaje en la UI
+                alert(`Recordatorio enviado: ${result.message}`);
+            } catch (error) {
+                console.error('Error al enviar recordatorio:', error);
+                // NOTA: En una aplicación real, usa un modal o mensaje de error en la UI
+                alert(`Error: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function handleEditClient(clientId) {
+            console.log('Función de edición de cliente para ID:', clientId);
+            // NOTA: Aquí deberías cargar los datos del cliente en un formulario de edición (modal)
+            // y luego enviar una solicitud PUT a /clients/{client_id}
+            alert('Funcionalidad de edición de cliente aún no implementada. Ver consola para el ID.');
+        }
+
+
+        // Event Listeners para los botones de navegación
+        navDashboard.addEventListener('click', () => showSection(dashboardSection));
+        navAddDebt.addEventListener('click', () => showSection(addDebtSection));
+        navViewDebts.addEventListener('click', () => showSection(viewDebtsSection));
+        navClients.addEventListener('click', () => showSection(clientsSection));
+
+        // Inicialmente mostrar el dashboard al cargar la página
+        document.addEventListener('DOMContentLoaded', async () => {
+            await showSection(dashboardSection);
+            hideLoading(); // Asegurarse de que el indicador esté oculto al inicio
+        });
+    </script>
+</body>
+</html>
